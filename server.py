@@ -13,8 +13,8 @@ p_lock = threading.Lock()
 # and second element is queue of messages when offline
 
 usernames = {}
-messages_idx = 1
 online_offline_idx = 0
+messages_idx = 1
 
 # thread function
 def threaded(client_connection):
@@ -84,6 +84,7 @@ def threaded(client_connection):
                 # send non-message data
                 client_connection.send(data.encode('ascii'))
                 break
+            
             #append message to list of messages that need to be delivered to user and indicate sender
             message = user_of_current_session + " says: " + str(data_list[2])
             usernames[destination_username][messages_idx].append(message)
@@ -126,18 +127,43 @@ def threaded(client_connection):
                     print("REACHED LINE AFTER CLIENT_CONNECITON.SEND() and the value of i is " + i + "\n")
                     i = i + 1
         
-        # opcode '5' represents deletes current account user is signed into
+        # opcode '5' deletes current account user is signed into.
         # format is: '5'
         elif opcode == '5':
+            # user must be signed into a valid account
             if user_of_current_session not in usernames:
-                data = "You are currently not signed into an account\n"
+                data = "Unsuccessful. You are currently not signed into an account and so you can not delete an account.\n"
                 print(data)
                 client_connection.send(data.encode('ascii'))
                 break
+
             # deletes entry of user from master table
             del usernames[user_of_current_session]
             # sets user of current session to be empty
             user_of_current_session = ''
+
+            # notification
+            data = "You have been successfully logged out."
+            print(data)
+
+        # opcode '6' logs out of the current account user is signed into.
+        # format is: '6'
+        elif opcode == '6':
+            # user must be signed into a valid account
+            if user_of_current_session not in usernames:
+                data = "Unsuccessful. You are currently not signed into an account and so you can not log out an account."
+                print(data)
+                client_connection.send(data.encode('ascii'))
+                break
+
+            # Updates entry of user from master table to be offline
+            usernames[destination_username][online_offline_idx] = False
+            # sets user of current session to be empty
+            user_of_current_session = ''
+
+            # notification
+            data = "You have been successfully logged out."
+            print(data)
             
         # send non-message data
         client_connection.send(data.encode('ascii'))
