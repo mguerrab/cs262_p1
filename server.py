@@ -1,10 +1,13 @@
 from ast import And
+from asyncio.windows_events import NULL
+from contextlib import nullcontext
 import socket
 import random
 
 #import thread module
 from _thread import *
 import threading
+from xmlrpc import client
 
 p_lock = threading.Lock()
 
@@ -15,6 +18,7 @@ p_lock = threading.Lock()
 usernames = {}
 online_offline_idx = 0
 messages_idx = 1
+client_connection_idx = 2
 
 # thread function
 def threaded(client_connection):
@@ -45,11 +49,12 @@ def threaded(client_connection):
         opcode = data_list[0]
         print('Opcode: ' + str(opcode))
 
-        # opcode '1' represents create account
+        # opcode '1' creates account by supplying a unique username.
+        # format is: 1|username
         if opcode == '1':
             username = str(data_list[1])
 
-            # if username is in dictionary, break
+            # if username already exists, do not create account
             if username in usernames:
                 data = "This username has already been taken. \n"
                 print(data)
@@ -58,45 +63,68 @@ def threaded(client_connection):
                 break
 
             # if unique username, add to list of usernames
-            usernames[username] = [True, []]
+            usernames[username] = [True, [], client_connection]
             user_of_current_session = username
+
+            # notification
             data = "Account has been successfully created with the following username: " + username + "\n"
             print(data)
 
         # opcode '2' represents list accounts
+        # format is: 2
         elif opcode == '2':
-            print("The list of accounts are:\n")
             data = "The list of accounts are:\n"
+            print(data)
+            
             accounts = list(usernames.keys())
             for name in accounts:
                 print(name + "\n")
                 data += name + "\n"
 
-        # opcode '3' represents sending messages to another user
+        # opcode '3' represents sending messages to another user. User must be logged in to send messages.
         # format is: 3|destination_username|message
         elif opcode == '3':
             destination_username = str(data_list[1])
 
             #check if username exists
             if destination_username not in usernames:
-                data = "Login is unsuccessful. This username does not exist. \n"
+                data = "Message has not been sent. This username does not exist. \n"
                 print(data)
                 # send non-message data
                 client_connection.send(data.encode('ascii'))
                 break
-            
-            #append message to list of messages that need to be delivered to user and indicate sender
+
+            # user must be signed into a valid account
+            if user_of_current_session not in usernames:
+                data = "Unsuccessful. You are currently not signed into an account and so you can not send messages to an account.\n"
+                print(data)
+                client_connection.send(data.encode('ascii'))
+                break
+
+            #append sender to the message so recipient knows who the sender was
             message = user_of_current_session + " says: " + str(data_list[2])
+            #if recipient message is online, send message right away
+            if (usernames[destination_username][online_offline_idx]):
+                # sends message
+                usernames[destination_username][client_connection_idx].send(message.encode('ascii'))
+                # notify sender
+                data = "Successful message delivery. If " + destination_username + " is offline, the message will be received once they log back in.\n"
+                print(data)
+                client_connection.send(data.encode('ascii'))
+                break
+            
+            # recipient is offline -> append message to list of messages that need to be delivered to user 
             usernames[destination_username][messages_idx].append(message)
             
+            # notify sender
             data = "Successful message delivery. If " + destination_username + " is offline, the message will be received once they log back in.\n"
             print("the number of messages that need to be delivered is: " + str(len(usernames[destination_username][messages_idx])) + "\n")
             print("these messages are" + str(usernames[destination_username][messages_idx]))
             print(data)
         
         # opcode '4' represents logging in to an existing account, meaning an existing username
-        # if username does not exist, it notifies the user and does not create a username
         # format is 4|username
+        # if username does not exist, it notifies the user and does not create a username
         # if there are messages on the queue for this user that have yet to be delivered, they will be delivered upon successful login
         elif opcode == '4':
             expected_username = str(data_list[1])
@@ -108,9 +136,10 @@ def threaded(client_connection):
                 client_connection.send(data.encode('ascii'))
                 break
 
-            #set user of current session
+            #sets user of current session
             user_of_current_session = expected_username
             usernames[user_of_current_session][online_offline_idx] = True
+            usernames[user_of_current_session][client_connection_idx] = client_connection
             data = "You have successfully logged into the account of " + user_of_current_session + "\n"
             print(data)
 
@@ -158,12 +187,17 @@ def threaded(client_connection):
 
             # Updates entry of user from master table to be offline
             usernames[destination_username][online_offline_idx] = False
+            # Updates entry of user from master table to not have client connection
+            usernames[destination_username][client_connection_idx] = NULL
             # sets user of current session to be empty
             user_of_current_session = ''
 
             # notification
             data = "You have been successfully logged out."
             print(data)
+            client_connection.send(data.encode('ascii'))
+            client_connection.close()
+            break
             
         # send non-message data
         client_connection.send(data.encode('ascii'))
