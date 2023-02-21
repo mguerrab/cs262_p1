@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package chat;
+
+// The request contains:
+// 1. Operation code for what operation to perform, required
+// 2. Username of primary user, required
+// 3. Username of secondary user, if relevant
+// 4. Message to be conveyed, if relevant
+message ServerRequest {
+    string op = 1;
+    string user1 = 2;
+    string user2 = 3;
+    string msg = 4;
+}
+
+// The reply is a string message
+message ServerReply {
+    string reply = 1; 
+}
+
+// The definition of the service performed by Server
+service ChatApp {
+    rpc PerformService(ServerRequest) returns (ServerReply) {}
+}
+
+// To auto-generate .py files, run this in command line:
+// python3 -m grpc_tools.protoc -I protos --python_out=. --grpc_python_out=. protos/chat.proto
