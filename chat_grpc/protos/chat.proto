@@ -6,7 +6,7 @@ package chat;
 // 1. Operation code for what operation to perform, required
 // 2. Username of primary user, required
 // 3. Username of secondary user, if relevant
-// 4. Message to be conveyed, if relevant
+// 4. Message to be communicated, if relevant
 message ServerRequest {
     string op = 1;
     string user1 = 2;
@@ -14,9 +14,10 @@ message ServerRequest {
     string msg = 4;
 }
 
-// The reply is a string message
+// The reply is a string message and a boolean success value
 message ServerReply {
-    string reply = 1; 
+    string reply = 1;
+    bool success = 2;
 }
 
 // The definition of the service performed by Server

@@ -2,7 +2,7 @@
 import socket
 
 def Main():
-    host ='127.0.0.1'
+    host ='172.20.10.2'
     
     #define port on which to connect
     port = 6000
@@ -10,7 +10,7 @@ def Main():
     s=socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # connect to server
-    s.connect((socket.gethostname(), port))
+    s.connect((host, port))
 
 
     while True:
