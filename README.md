@@ -25,3 +25,5 @@ The bullets below show how to run the different operations and what they do. The
 - '4|username': log in to account of username supplied
 - '5': delete current account user is logged into
 - '6': log out of account user is logged into
+
+NOTE DO NOT USE THE CHARACTER '|' IN YOUR COMMANDS IN THE TERMINAL EXCEPT AS OUTLINED ABOVE.
