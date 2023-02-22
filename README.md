@@ -14,3 +14,14 @@
 4. In one linux-based terminal, start the server by running the following command: ``` $ python3 server.py ```.
 5. In a new linux-based terminal, start the client by running the following command: ``` $ python client.py ```
 6. For every new client you want to add, repeat step 5.
+
+
+### Operation Syntax
+The bullets below show how to run the different operations and what they do. The format is: 'command to run in terminal': what this command does
+
+- '1|Username': creates an account with username supplied
+- '2': lists usernames of all accounts created
+- '3|target_username|message': sends message to target_username
+- '4|username': log in to account of username supplied
+- '5': delete current account user is logged into
+- '6': log out of account user is logged into
